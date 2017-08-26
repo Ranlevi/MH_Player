@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/main_activity"
+        android:icon="@drawable/ic_home_black_24dp"
+        app:showAsAction="ifRoom"
+        android:title="Main Activity">
+    </item>
+    <item
+        android:id="@+id/second_activity"
+        android:icon="@drawable/ic_play_arrow_black_24dp"
+        app:showAsAction="ifRoom"
+        android:title="2nd Activity">
+    </item>
+</menu>

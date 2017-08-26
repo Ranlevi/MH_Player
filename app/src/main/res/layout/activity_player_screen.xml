@@ -1,0 +1,39 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@color/colorPrimaryDark"
+    android:orientation="vertical"
+    tools:context=".PlayerScreen">
+
+    <ImageButton
+        android:id="@+id/play_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/play" />
+
+    <ImageButton
+        android:id="@+id/stop_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_stop_white_24dp" />
+
+    <ImageButton
+        android:id="@+id/fwd_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_forward_30_white_24dp" />
+
+    <ImageButton
+        android:id="@+id/replay_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_replay_30_white_24dp" />
+
+    <SeekBar
+        android:id="@+id/seek_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+
+</LinearLayout>
