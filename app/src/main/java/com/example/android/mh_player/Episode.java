@@ -8,22 +8,29 @@ public class Episode implements Serializable{
     //Episode object holds all the information received from the RSS feed about a podcast episode.
     //Extends Serialziable so it can be sent to PlayerScreen.
 
-    private String  title;
-    private String  description;
-    private String  mp3URL;
-    private int     duration;
-    private Boolean downloaded;
-    private String  file_name;
+    String          title;
+    public String   description;
+    private boolean isDownloaded;
+    String          file_name;
+    String          mp3URL;
+    int             duration;
+
+    private String  pubDate;
+    private String  link;
 
 
-    public Episode(String title,
-                   String description,
-                   String mp3URL,
-                   String duration){
+    Episode(String title,
+            String description,
+            String mp3URL,
+            String duration,
+            String pubDate,
+            String link){
 
         this.title       = title;
         this.description = description;
         this.mp3URL      = mp3URL;
+        this.pubDate     = pubDate;
+        this.link        = link;
 
         //Convert the String duration of the form "01:02:03" to int number of millisecs.
         String[] temp_arr = duration.split(":");
@@ -43,37 +50,17 @@ public class Episode implements Serializable{
 
         }
 
-        this.downloaded  = false;
+        this.isDownloaded  = false;
 
         //Local file name, random string of 32 chars.
         this.file_name = UUID.randomUUID().toString().replaceAll("-","");
     }
 
-    public String getEpisodeTitle(){
-        return this.title;
+    void setDownloadedTrue(){
+        this.isDownloaded = true;
     }
 
-    public String getEpisodeDescription(){
-        return this.description;
-    }
-
-    public String getMp3URL(){
-        return this.mp3URL;
-    }
-
-    public int getDuration(){
-        return this.duration;
-    }
-
-    public void setDownloaded(){
-        this.downloaded = true;
-    }
-
-    public boolean isDownloaded(){
-        return this.downloaded;
-    }
-
-    public String getFilename(){
-        return this.file_name;
+    boolean isDownloaded(){
+        return this.isDownloaded;
     }
 }

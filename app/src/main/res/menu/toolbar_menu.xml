@@ -2,15 +2,23 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/main_activity"
-        android:icon="@drawable/ic_home_black_24dp"
+        android:id="@+id/podcasts_activity"
+        android:icon="@drawable/ic_podcasts_screen_black_24dp"
         app:showAsAction="ifRoom"
-        android:title="Main Activity">
+        android:title="Podcasts">
     </item>
+
     <item
-        android:id="@+id/second_activity"
+        android:id="@+id/episodes_activity"
+        android:icon="@drawable/ic_episodes_screen_black_24dp"
+        app:showAsAction="ifRoom"
+        android:title="Episodes">
+    </item>
+
+    <item
+        android:id="@+id/player_activity"
         android:icon="@drawable/ic_play_arrow_black_24dp"
         app:showAsAction="ifRoom"
-        android:title="2nd Activity">
+        android:title="Player">
     </item>
 </menu>

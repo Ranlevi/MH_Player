@@ -9,23 +9,14 @@ import java.io.InputStream;
 import java.text.ParseException;
 import java.util.ArrayList;
 
-public class FeedParser {
+class FeedParser {
     //Gets an input stream of a podcast RSS feed.
     //Returns an ArrayList of Item objects, each holding an episode's data.
-
-    // Constants indicting XML element names that we're interested in
-//    private static final int TAG_DESCRIPTION = 1;
-//    private static final int TAG_TITLE       = 2;
-//    private static final int TAG_PUBDATE     = 3;
-//    private static final int TAG_LINK        = 4;
-//    private static final int TAG_MP3URL      = 5;
-//    private static final int TAG_DURATION    = 6;
-
 
     // We don't use XML namespaces
     private static final String ns = null;
 
-    public ArrayList<Item> parse(InputStream in) {
+    ArrayList<Episode> parse(InputStream in) {
         //Get an input stream of the RSS feed. Initialize it and
         //call readFeed().
 
@@ -40,6 +31,7 @@ public class FeedParser {
             parser.nextTag(); //skip <xml>
             parser.nextTag(); //skip <rss>
             return readFeed(parser);
+
         } catch (XmlPullParserException e) {
             Log.d("FeedParser", "XmlPullParserException");
             e.printStackTrace();
@@ -53,11 +45,11 @@ public class FeedParser {
         return null; //If readFeed fails -> null.
     }
 
-    private ArrayList<Item> readFeed(XmlPullParser parser)
+    private ArrayList<Episode> readFeed(XmlPullParser parser)
             throws XmlPullParserException, IOException, ParseException {
         //Looks for <item> tags and processes them.
 
-        ArrayList<Item> entries = new ArrayList<Item>();
+        ArrayList<Episode> episodes = new ArrayList<Episode>();
 
         //Podcast Feed Structure that we're looking for:
         //<channel>
@@ -85,16 +77,16 @@ public class FeedParser {
 
             //We're looking for an <item> tag. When we find it we read it.
             if (name.equals("item")) {
-                entries.add(readItem(parser));
+                episodes.add(readItem(parser));
             } else {
                 skip(parser);
             }
         }
 
-        return entries;
+        return episodes;
     }
 
-    private Item readItem(XmlPullParser parser)
+    private Episode readItem(XmlPullParser parser)
             throws XmlPullParserException, IOException, ParseException {
 
         parser.require(XmlPullParser.START_TAG, ns, "item");
@@ -143,7 +135,8 @@ public class FeedParser {
                 skip(parser);
             }
         }
-        return new Item(title, link, description, mp3URL, pubDate, duration);
+
+        return new Episode(title, description, mp3URL, duration, pubDate, link);
     }
 
     /**
@@ -202,28 +195,4 @@ public class FeedParser {
         }
     }
 
-
-    //This class represents a single item (episode) in the XML feed.
-    public static class Item {
-        public final String title;
-        public final String link;
-        public final String description;
-        public final String mp3URL;
-        public final String pubDate;
-        public final String duration;
-
-        Item( String title,
-              String link,
-              String description,
-              String mp3URL,
-              String published,
-              String duration) {
-            this.title = title;
-            this.link = link;
-            this.pubDate = published;
-            this.description = description;
-            this.mp3URL = mp3URL;
-            this.duration = duration;
-        }
-    }
 }

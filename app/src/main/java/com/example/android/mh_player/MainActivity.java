@@ -2,6 +2,7 @@ package com.example.android.mh_player;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -23,7 +24,7 @@ import java.util.ArrayList;
 
 /*
 TODO:
-Manange life cycle for all activitiues
+Manange life cycle for all activities
 Change theme colors
 Change toolbar title
 */
@@ -38,22 +39,20 @@ public class MainActivity extends AppCompatActivity {
     //and handles clicks on them.
 
     //Create the ToolBar.
-    //Create the ListView, and its onItemClick()
+    //Create the ListView and its onItemClick()
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //Create the ToolBar.
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("Podcasts");
         setSupportActionBar(toolbar);
 
-        //Create the list of Podcasts.
-        ListOfPodcasts listOfPodcasts = new ListOfPodcasts(getApplicationContext());
+        ArrayList<Podcast> listOfPodcasts = new ListOfPodcasts().getList();
 
-        //Create the ListView Adapter
         PodcastListViewAdapter podcast_adapter =
-                new PodcastListViewAdapter(this, listOfPodcasts.getList());
+                new PodcastListViewAdapter(this, listOfPodcasts);
 
         final ListView listview = (ListView) findViewById(R.id.list_view);
         listview.setAdapter(podcast_adapter);
@@ -61,22 +60,21 @@ public class MainActivity extends AppCompatActivity {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                //When a podcast has been clicked, we call the EpisodesList screen
+                //When a podcast has been clicked, we call the EpisodesActivity
                 //and pass it the RSS Feed URL of the podcast.
                 Podcast podcast = (Podcast) adapterView.getItemAtPosition(i);
-                String rssURL = podcast.getRssFeedURL();
 
-                Intent intent = new Intent(MainActivity.this, EpisodesScreen.class);
-                intent.putExtra("RSS_URL", rssURL);
+                Intent intent = new Intent(MainActivity.this, EpisodesActivity.class);
+                intent.putExtra("RSS_URL", podcast.rssFeedURL);
                 startActivity(intent);
             }
         });
     }
 
     //Create the ListView Adapter.
-    public class PodcastListViewAdapter extends ArrayAdapter<Podcast> {
+    class PodcastListViewAdapter extends ArrayAdapter<Podcast> {
 
-        public PodcastListViewAdapter(Context context, ArrayList<Podcast> podcastsList){
+        PodcastListViewAdapter(Context context, ArrayList<Podcast> podcastsList){
             //Constructor
             super(context,0,podcastsList);
         }
@@ -96,12 +94,18 @@ public class MainActivity extends AppCompatActivity {
             //Grab the TextViews from the podcasts_list_row_layout
             TextView tvName        = (TextView) convertView.findViewById(R.id.name);
             TextView tvDescription = (TextView) convertView.findViewById(R.id.description);
-            ImageView ibLogo     = (ImageView) convertView.findViewById(R.id.logo);
+            ImageView ibLogo       = (ImageView) convertView.findViewById(R.id.logo);
 
             //Set the Row views.
-            tvName.setText(podcast.getPodcastName());
-            tvDescription.setText(podcast.getPodcastDescription());
-            ibLogo.setImageDrawable(podcast.getLogo());
+            if (podcast !=null){
+                tvName.setText(podcast.name);
+                tvDescription.setText(podcast.description);
+
+                //path_to_logo is a string. We concert to ID first, then set the image.
+                Drawable logo = getDrawable(getResources()
+                        .getIdentifier(podcast.path_to_logo, "drawable", getPackageName()));
+                ibLogo.setImageDrawable(logo);
+            }
 
             return convertView;
         }
@@ -119,15 +123,22 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
-            case R.id.main_activity:
-                Toast.makeText(this, "Main Activity Pressed", Toast.LENGTH_SHORT).show();
+
+            case R.id.podcasts_activity:
+                //do nothing
                 break;
 
-            case R.id.second_activity:
-                Toast.makeText(this, "2nd Activity Pressed", Toast.LENGTH_SHORT).show();
+            case R.id.episodes_activity:
+                //Toast.makeText(this, "Episodes Pressed", Toast.LENGTH_SHORT).show();
+
+                //Intent intent = new Intent(MainActivity.this, EpisodesActivity.class);
+                //intent.putExtra("RSS_URL", podcast.rssFeedURL);
+                //startActivity(intent);
                 break;
-                //Intent second_activity_intent = new Intent(this, EpisodesList.class);
-                //startActivity(second_activity_intent);
+
+            case R.id.player_activity:
+                Toast.makeText(this, "Player Pressed", Toast.LENGTH_SHORT).show();
+                break;
         }
 
         return true;

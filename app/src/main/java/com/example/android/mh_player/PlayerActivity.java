@@ -9,7 +9,9 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
@@ -17,39 +19,28 @@ import android.widget.Toast;
 
 import java.io.File;
 
-public class PlayerScreen extends AppCompatActivity {
+public class PlayerActivity extends AppCompatActivity {
+    //Displays the audio player control. Each press delegates the action
+    //to the PlayerService.
 
-    private PlayerService       musicSrv;
-    String                      mp3URL;
-    private Intent              playIntent;
-    private boolean             musicBound=false;
-    //private PlayerController    controller;
-    private boolean             paused=false, playbackPaused=false;
+    private PlayerService   musicSrv;
+    private Intent          playIntent;
+    private Boolean         playBtnIcon_Play = true;
+    Episode                 episode;
 
-    private ImageButton playBtn;
-    private ImageButton stopBtn;
-    private ImageButton fwdBtn;
-    private ImageButton replayBtn;
-    private Boolean playBtnIcon_Play = true;
-    private SeekBar seekBar;
-    private int mp3_duration;
-
-    Episode episode;
-
-    //Get the url of the mp3 to play. Calls the MediaController set.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player_screen);
 
-//        Bundle b = this.getIntent().getExtras();
-//        String[] array = b.getStringArray("MP3_INFO");
+        //Create the ToolBar.
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("Player");
+        setSupportActionBar(toolbar);
 
         episode = (Episode) this.getIntent().getSerializableExtra("Episode");
-        mp3URL = episode.getMp3URL();
-        mp3_duration = episode.getDuration();
 
-        playBtn = (ImageButton) findViewById(R.id.play_btn);
+        final ImageButton playBtn = (ImageButton) findViewById(R.id.play_btn);
         playBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -64,7 +55,7 @@ public class PlayerScreen extends AppCompatActivity {
             }
         });
 
-        stopBtn = (ImageButton) findViewById(R.id.stop_btn);
+        ImageButton stopBtn = (ImageButton) findViewById(R.id.stop_btn);
         stopBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -74,7 +65,7 @@ public class PlayerScreen extends AppCompatActivity {
             }
         });
 
-        fwdBtn = (ImageButton) findViewById(R.id.fwd_btn);
+        ImageButton fwdBtn = (ImageButton) findViewById(R.id.fwd_btn);
         fwdBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -82,7 +73,7 @@ public class PlayerScreen extends AppCompatActivity {
             }
         });
 
-        replayBtn = (ImageButton) findViewById(R.id.replay_btn);
+        ImageButton replayBtn = (ImageButton) findViewById(R.id.replay_btn);
         replayBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -90,7 +81,7 @@ public class PlayerScreen extends AppCompatActivity {
             }
         });
 
-        seekBar = (SeekBar) findViewById(R.id.seek_bar);
+        final SeekBar seekBar = (SeekBar) findViewById(R.id.seek_bar);
         seekBar.setMax(100);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -98,7 +89,7 @@ public class PlayerScreen extends AppCompatActivity {
                 if (fromUser){
 
                     float f_prog = (float) progress;
-                    float fpos =  mp3_duration*(f_prog/100);
+                    float fpos =  episode.duration*(f_prog/100);
                     int pos = (int) fpos;
                     musicSrv.seekTo(pos);
                 }
@@ -115,13 +106,14 @@ public class PlayerScreen extends AppCompatActivity {
             }
         });
 
+        //Handle the seekBar progress during play.
         final Handler mHandler = new Handler();
-        PlayerScreen.this.runOnUiThread(new Runnable() {
+        PlayerActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if (musicSrv !=null && musicSrv.isPlaying()){
                     float mCurrentPositionInMS = (float) musicSrv.getPosn();
-                    float temp_progress = 100*(mCurrentPositionInMS/mp3_duration);
+                    float temp_progress = 100*(mCurrentPositionInMS/episode.duration);
                     int progress = (int) temp_progress;
 
                     seekBar.setProgress(progress);
@@ -143,18 +135,17 @@ public class PlayerScreen extends AppCompatActivity {
             musicSrv = binder.getService();
 
             if (episode.isDownloaded()){
-                File file = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), episode.getFilename());
+                File file = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), episode.file_name);
                 musicSrv.setURL(file.getAbsolutePath());
             } else {
-                musicSrv.setURL(mp3URL);
+                musicSrv.setURL(episode.mp3URL);
             }
 
-            musicBound = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            musicBound = false;
+            //null
         }
     };
 
@@ -182,15 +173,11 @@ public class PlayerScreen extends AppCompatActivity {
     @Override
     protected void onPause(){
         super.onPause();
-        paused=true;
     }
 
     @Override
     protected void onResume(){
         super.onResume();
-        if(paused){
-            paused=false;
-        }
     }
 
     @Override
@@ -198,115 +185,36 @@ public class PlayerScreen extends AppCompatActivity {
         super.onStop();
     }
 
+    //Create the ToolBar Menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        //Get the menu for this activity.
+        getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+        return true;
+    }
 
+    //What happens when a ToolBar item is clicked.
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
 
-    //Media Controller Methods
-    //////////////////////////////
+            case R.id.podcasts_activity:
+                Toast.makeText(this, "Podcasts Pressed", Toast.LENGTH_SHORT).show();
+                break;
 
-//    private void setController(){
-//        controller = new PlayerController(this);
-//        controller.setPrevNextListeners(
-//
-//         new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                playNext();
-//            }
-//
-//        }, new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                playPrev();
-//            }
-//        });
-//
-//        controller.setMediaPlayer(this);
-//        controller.setAnchorView(findViewById(R.id.player_screen_view));
-//        controller.setEnabled(true);
-//    }
+            case R.id.episodes_activity:
+                Toast.makeText(this, "Episodes Pressed", Toast.LENGTH_SHORT).show();
+                break;
+            //Intent second_activity_intent = new Intent(this, EpisodesList.class);
+            //startActivity(second_activity_intent);
 
-//    @Override
-//    public int getDuration() {//Media Controller
-//        if(musicSrv!=null && musicBound && musicSrv.isPng())
-//            return musicSrv.getDur();
-//        else return 0;
-//    }
-//
-//    @Override
-//    public int getCurrentPosition() {//Media Controller
-//        if(musicSrv!=null && musicBound && musicSrv.isPng())
-//            return musicSrv.getPosn();
-//        else return 0;
-//    }
-//
-//    @Override
-//    public void pause() {//Media Controller
-//        playbackPaused=true;
-//        musicSrv.pausePlayer();
-//    }
-//
-//    @Override
-//    public void seekTo(int pos) {//Media Controller
-//        musicSrv.seek(pos);
-//    }
-//
-//    @Override
-//    public void start() {//Media Controller
-//        Toast.makeText(this, "Now Buffering...", Toast.LENGTH_LONG);
-//        musicSrv.go();
-//    }
-//
-//    @Override
-//    public boolean isPlaying() {//Media Controller
-//        if(musicSrv!=null && musicBound)
-//            return musicSrv.isPng();
-//        return false;
-//    }
-//
-//    @Override
-//    public int getBufferPercentage() {//Media Controller
-//        return 0;
-//    }
-//
-//    @Override
-//    public boolean canPause() {//Media Controller
-//        return true;
-//    }
-//
-//    @Override
-//    public boolean canSeekBackward() {//Media Controller
-//        return true;
-//    }
-//
-//    @Override
-//    public boolean canSeekForward() {//Media Controller
-//        return true;
-//    }
-//
-//    @Override
-//    public int getAudioSessionId() {//Media Controller
-//        return 0;
-//    }
-//
-//    private void playNext(){
-//        //musicSrv.playNext(urls[1]);
-//        if(playbackPaused){
-//            setController();
-//            playbackPaused=false;
-//        }
-//        controller.show(0);
-//    }
-//
-//    private void playPrev(){
-//        //musicSrv.playPrev(urls[0]);
-//        if(playbackPaused){
-//            setController();
-//            playbackPaused=false;
-//        }
-//        controller.show(0);
-//    }
-//
-//
+            case R.id.player_activity:
+                //Do nothing
+                break;
+        }
+
+        return true;
+    }
 
 }
 

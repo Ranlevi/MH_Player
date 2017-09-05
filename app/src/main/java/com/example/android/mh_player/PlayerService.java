@@ -15,7 +15,6 @@ public class PlayerService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener{
 
-    //media player
     private MediaPlayer player;
     private String songTitle="Song Title";
     private static final int NOTIFY_ID=1;

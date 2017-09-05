@@ -10,18 +10,20 @@ public class EpisodeTest {
     @Test
     public void testEpisodeMethods() throws Exception {
         Episode episode = new Episode("Mock Title",
-                                    "Mock Description",
-                                    "http://www.mock_url.mp3",
-                                    "01:02:03");
+                                        "Mock Description",
+                                        "http://www.mock_url.mp3",
+                                        "01:02:03",
+                                        "mock duration",
+                                        "mock link");
 
-        assertThat(episode.getEpisodeTitle(),is("Mock Title"));
-        assertThat(episode.getEpisodeDescription(),is("Mock Description"));
-        assertThat(episode.getMp3URL(),is("http://www.mock_url.mp3"));
-        assertThat(episode.getDuration(),is(3723000));
+        assertThat(episode.title,is("Mock Title"));
+        assertThat(episode.description,is("Mock Description"));
+        assertThat(episode.mp3URL,is("http://www.mock_url.mp3"));
+        assertThat(episode.duration,is(3723000));
         assertThat(episode.isDownloaded(),is(false));
-        assertThat(episode.getFilename().length(),is(32));
+        assertThat(episode.file_name.length(),is(32));
 
-        episode.setDownloaded();
+        episode.setDownloadedTrue();
         assertThat(episode.isDownloaded(),is(true));
     }
 
