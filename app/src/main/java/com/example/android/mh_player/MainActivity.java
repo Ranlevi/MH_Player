@@ -8,6 +8,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,13 +23,6 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-/*
-TODO:
-Manange life cycle for all activities
-Change theme colors
-Change toolbar title
-*/
-
 public class MainActivity extends AppCompatActivity {
     //This is the main screen of the application.
     //It has a ToolBar on top, and shows a list of podcasts.
@@ -38,12 +32,19 @@ public class MainActivity extends AppCompatActivity {
     //We then create the ListView and ListView adapter that shows the podcast objects,
     //and handles clicks on them.
 
+    //Note on Activity Back Stack:
+    //When the toolbar is pressed, we start the activity with REORDER, to bring
+    //to the front the existing instance of an activity, if there is one.
+    //When the user presses BACK, the instance is destroyed so we can't reorder later.
+
     //Create the ToolBar.
     //Create the ListView and its onItemClick()
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Log.i("MainActivity", "onCreate()");
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle("Podcasts");
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //Create the ListView Adapter.
-    class PodcastListViewAdapter extends ArrayAdapter<Podcast> {
+    private class PodcastListViewAdapter extends ArrayAdapter<Podcast> {
 
         PodcastListViewAdapter(Context context, ArrayList<Podcast> podcastsList){
             //Constructor
@@ -119,30 +120,36 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.getItem(0).setIcon(R.drawable.ic_podcasts_screen_white_24dp);
+        menu.getItem(0).setEnabled(false);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
     //What happens when a ToolBar item is clicked.
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
 
-            case R.id.podcasts_activity:
-                //do nothing
-                break;
-
             case R.id.episodes_activity:
-                //Toast.makeText(this, "Episodes Pressed", Toast.LENGTH_SHORT).show();
-
-                //Intent intent = new Intent(MainActivity.this, EpisodesActivity.class);
-                //intent.putExtra("RSS_URL", podcast.rssFeedURL);
-                //startActivity(intent);
+                Intent ep_intent = new Intent(MainActivity.this, EpisodesActivity.class);
+                ep_intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(ep_intent);
                 break;
 
             case R.id.player_activity:
-                Toast.makeText(this, "Player Pressed", Toast.LENGTH_SHORT).show();
+                Intent pl_intent = new Intent(MainActivity.this, PlayerActivity.class);
+                startActivity(pl_intent);
                 break;
         }
 
         return true;
     }
 
-
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i("MainActivity", "onNewIntent()");
+    }
 }

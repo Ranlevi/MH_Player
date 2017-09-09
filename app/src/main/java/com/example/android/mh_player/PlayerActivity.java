@@ -16,7 +16,6 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.Toast;
-
 import java.io.File;
 
 public class PlayerActivity extends AppCompatActivity {
@@ -27,6 +26,29 @@ public class PlayerActivity extends AppCompatActivity {
     private Intent          playIntent;
     private Boolean         playBtnIcon_Play = true;
     Episode                 episode;
+
+    //Create the Service connection.
+    private ServiceConnection musicConnection = new ServiceConnection(){
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            //casting the service to the MusicBinder type
+            PlayerService.MusicBinder binder = (PlayerService.MusicBinder) service;
+            musicSrv = binder.getService();
+
+            if (episode.isDownloaded()){
+                File file = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), episode.file_name);
+                musicSrv.setURL(file.getAbsolutePath());
+            } else {
+                musicSrv.setURL(episode.mp3URL);
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            //null
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,42 +146,22 @@ public class PlayerActivity extends AppCompatActivity {
         });
     }
 
-    //Create the Service connection.
-    private ServiceConnection musicConnection = new ServiceConnection(){
 
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            //casting the service to the MusicBinder type
-            PlayerService.MusicBinder binder = (PlayerService.MusicBinder) service;
-            //get service
-            musicSrv = binder.getService();
-
-            if (episode.isDownloaded()){
-                File file = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), episode.file_name);
-                musicSrv.setURL(file.getAbsolutePath());
-            } else {
-                musicSrv.setURL(episode.mp3URL);
-            }
-
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            //null
-        }
-    };
 
     //Activity Life Cycle Methods
     /////////////////////////////
 
     @Override
     protected void onDestroy() {
-        stopService(playIntent);
+        //stopService(playIntent);
         musicSrv=null;
         super.onDestroy();
     }
 
-    //After onCreate(), we connect to the service.
+    //If the service has not been started before (==playIntent is null),
+    //We start it here.
+    //Note that the connection to the service is already created
+    //when the activity is created.
     @Override
     protected void onStart() {
         super.onStart();

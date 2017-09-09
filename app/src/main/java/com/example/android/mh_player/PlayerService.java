@@ -15,19 +15,41 @@ public class PlayerService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener{
 
+    /////////////////////////////////////////////////////
+
+    private final IBinder musicBind = new MusicBinder();
+
+    //Returns a Binder object to the calling activity. The object
+    //contains a reference to this service.
+    public class MusicBinder extends Binder {
+        PlayerService getService() {
+            return PlayerService.this;
+        }
+    }
+
+    //the calling activity gets an IBinder object.
+    @Override
+    public IBinder onBind(Intent intent) {
+        return musicBind;
+    }
+
+    //////////////////////////////////////////////////////////
+
+
+
     private MediaPlayer player;
     private String songTitle="Song Title";
     private static final int NOTIFY_ID=1;
-    private final IBinder musicBind = new MusicBinder();
+
     private String mp3URL;
     private int file_duration;
 
     private String mediaPlayerState = null;
     private boolean isPlaying = false;
 
-    //Constructor
-    public PlayerService() {
-    }
+//    //Constructor
+//    public PlayerService() {
+//    }
 
     //Create and Configure the MediaPlayer.
     public void onCreate(){
@@ -43,13 +65,7 @@ public class PlayerService extends Service implements
         player.setOnErrorListener(this);
     }
 
-    //Returns a Binder object to the calling activity. The object
-    //contains a reference to this service.
-    public class MusicBinder extends Binder {
-        PlayerService getService() {
-            return PlayerService.this;
-        }
-    }
+
 
     //LIFE CYCLE METHODS
 
@@ -59,11 +75,7 @@ public class PlayerService extends Service implements
         stopForeground(true);
     }
 
-    //the calling activity gets an IBinder object.
-    @Override
-    public IBinder onBind(Intent intent) {
-        return musicBind;
-    }
+
 
     //Stop and Release the MediaPlayer.
     @Override

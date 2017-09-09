@@ -52,8 +52,20 @@ public class EpisodesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_episodes_list);
 
+        Log.i("EpisodeActivity","onCreate()");
+
         Intent intent = getIntent();
-        String rssURL = intent.getExtras().getString("RSS_URL");
+        Bundle bundle = intent.getExtras();
+        String rssURL;
+
+        if (bundle == null){
+            //An intent from the toolbar, when a podcast was never selected.
+            //set the default rss string (making history)
+            rssURL = "http://www.ranlevi.com/feed/podcast/";
+        } else {
+            rssURL = bundle.getString("RSS_URL");
+
+        }
 
         new ParseRSS(rssURL).execute();
 
@@ -73,6 +85,12 @@ public class EpisodesActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Log.i("EpisodeActivity","onResume()");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i("EpisodeActivity","onNewIntent()");
     }
 
     //Parse the RSS Feed of the selected podcast in the background.
@@ -246,23 +264,31 @@ public class EpisodesActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.getItem(1).setIcon(R.drawable.ic_episodes_screen_white_24dp);
+        menu.getItem(1).setEnabled(false);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
     //What happens when a ToolBar item is clicked.
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
 
             case R.id.podcasts_activity:
-                Toast.makeText(this, "Podcasts Pressed", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(EpisodesActivity.this, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
                 break;
 
-            case R.id.episodes_activity:
-                //Do Nothing
-                break;
-            //Intent second_activity_intent = new Intent(this, EpisodesList.class);
-            //startActivity(second_activity_intent);
+//            case R.id.episodes_activity:
+//                //Do nothing
+//                break;
+
 
             case R.id.player_activity:
-                Toast.makeText(this, "Player Pressed", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(this, "Player Pressed", Toast.LENGTH_SHORT).show();
                 break;
         }
 
