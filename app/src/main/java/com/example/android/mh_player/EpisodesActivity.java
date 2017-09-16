@@ -2,6 +2,7 @@ package com.example.android.mh_player;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -20,7 +21,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,28 +43,31 @@ public class EpisodesActivity extends AppCompatActivity {
 
     private EpisodeListViewAdapter  episode_adapter;
     private ArrayList<Episode>      episodes_list;
+    private String rssURL;
 
+    /// Life Cycle Methods
+    /////////////////////////////////
 
-    //Gets RSS URL and calls the parser.
-    //Creates the ToolBar.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //Gets RSS URL and calls the parser.
+        //Creates the ToolBar.
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_episodes_list);
 
-        Log.i("EpisodeActivity","onCreate()");
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onCreate()");
 
         Intent intent = getIntent();
-        Bundle bundle = intent.getExtras();
-        String rssURL;
+        rssURL = intent.getStringExtra("PODCAST_RSS_URL");
 
-        if (bundle == null){
-            //An intent from the toolbar, when a podcast was never selected.
-            //set the default rss string (making history)
-            rssURL = "http://www.ranlevi.com/feed/podcast/";
-        } else {
-            rssURL = bundle.getString("RSS_URL");
-
+        if (rssURL == null){
+            //The activity was started from the toolbar, and there is
+            //no rssURL already loaded:
+            //Get the last podcast used before the app was closed.
+            SharedPreferences sharedPreferences;
+            sharedPreferences = getSharedPreferences("MH_PLAYER_PREF", 0);
+            rssURL = sharedPreferences.getString("LAST_USED_RSS_FEED", "http://www.ranlevi.com/feed/podcast/");
         }
 
         new ParseRSS(rssURL).execute();
@@ -75,27 +78,72 @@ public class EpisodesActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
     }
 
+    /////-------------------------------------------
     @Override
     protected void onStart() {
         super.onStart();
-        Log.i("EpisodeActivity","onStart()");
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onStart()");
     }
 
+    /////-------------------------------------------
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i("EpisodeActivity","onResume()");
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onCreate()");
     }
 
+    /////-------------------------------------------
+    @Override
+    protected void onPause() {
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onPause()");
+        super.onPause();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onStop() {
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onPause()");
+        super.onStop();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onDestroy() {
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onDestroy()");
+        super.onDestroy();
+
+        //Save the last used RSS feed url, for the next time the app opens.
+        SharedPreferences sharedPreferences;
+        sharedPreferences = getSharedPreferences("MH_PLAYER_PREF", 0);
+
+        SharedPreferences.Editor editor;
+        editor = sharedPreferences.edit();
+        editor.putString("LAST_USED_RSS_FEED", rssURL);
+        editor.commit();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onRestart() {
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onRestart()");
+        super.onRestart();
+    }
+
+    /////-------------------------------------------
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        Log.i("EpisodeActivity","onNewIntent()");
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onNewIntent()");
     }
 
-    //Parse the RSS Feed of the selected podcast in the background.
-    //Creates the list of Episodes for the ListView.
+    ////////////////////////////////////////////////////
+    //////////////////////////////////////////////////
+
+
     private class ParseRSS extends AsyncTask<Void, Void, ArrayList<Episode>> {
+        //Parse the RSS Feed of the selected podcast in the background.
+        //Creates the list of Episodes for the ListView.
+
         private String rssURL;
 
         //Constructor
@@ -138,16 +186,22 @@ public class EpisodesActivity extends AppCompatActivity {
 
                     Episode episode = (Episode) episode_adapter.getItemAtPosition(i);
 
+                    // Start the PlayerActivity
+                    Bundle bundle = new Bundle();
+                    bundle.putSerializable("SELECTED_EPISODE", episode);
+
                     Intent intent = new Intent(EpisodesActivity.this, PlayerActivity.class);
-                    intent.putExtra("Episode", episode);
+                    intent.putExtras(bundle);
                     startActivity(intent);
                 }
             });
         }
     }
 
-    //Create the ListView Adapter.
+    /////-------------------------------------------
+
     private class EpisodeListViewAdapter extends ArrayAdapter<Episode> {
+        //Create the ListView Adapter.
 
         EpisodeListViewAdapter(Context context, ArrayList<Episode> episodeList){
             //Constructor
@@ -198,8 +252,10 @@ public class EpisodesActivity extends AppCompatActivity {
         }
     }
 
-    //Downloads the mp3 in the background.
+    /////-------------------------------------------
+
     private class DownloadFileFromInternet extends AsyncTask<Integer, Void, Void>{
+        //Downloads the mp3 in the background.
 
         @Override
         protected Void doInBackground(Integer... position) {
@@ -255,8 +311,8 @@ public class EpisodesActivity extends AppCompatActivity {
             episode_adapter.notifyDataSetChanged();
         }
     }
+    /////-------------------------------------------
 
-    //Create the ToolBar Menu
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         //Get the menu for this activity.
@@ -264,6 +320,7 @@ public class EpisodesActivity extends AppCompatActivity {
         return true;
     }
 
+    /////-------------------------------------------
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.getItem(1).setIcon(R.drawable.ic_episodes_screen_white_24dp);
@@ -271,7 +328,7 @@ public class EpisodesActivity extends AppCompatActivity {
         return super.onPrepareOptionsMenu(menu);
     }
 
-    //What happens when a ToolBar item is clicked.
+    /////-------------------------------------------
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
@@ -281,11 +338,6 @@ public class EpisodesActivity extends AppCompatActivity {
                 intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
                 break;
-
-//            case R.id.episodes_activity:
-//                //Do nothing
-//                break;
-
 
             case R.id.player_activity:
                 //Toast.makeText(this, "Player Pressed", Toast.LENGTH_SHORT).show();

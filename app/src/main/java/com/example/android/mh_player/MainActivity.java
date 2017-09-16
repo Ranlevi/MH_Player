@@ -19,9 +19,16 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
+
+/**
+ *  TODO: Custom data from RSS
+ *  TODO: finanliz UI
+ *
+ *  BUGS:
+ *  -on rotate, playing starts from 0.
+ */
 
 public class MainActivity extends AppCompatActivity {
     //This is the main screen of the application.
@@ -37,19 +44,31 @@ public class MainActivity extends AppCompatActivity {
     //to the front the existing instance of an activity, if there is one.
     //When the user presses BACK, the instance is destroyed so we can't reorder later.
 
-    //Create the ToolBar.
-    //Create the ListView and its onItemClick()
+    //Intent serviceIntent;
+
+    /// Life Cycle Methods
+    /////////////////////////////////
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //Create the ToolBar.
+        //Create the ListView and its onItemClick()
+
+        Log.i("MH_PLAYER_APP", "MainActivity, onCreate()");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.i("MainActivity", "onCreate()");
+        //Start the MediaPlayer service.
+        //serviceIntent = new Intent(this, PlayerService.class);
+        //startService(serviceIntent);
 
+        //Create the ToolBar.
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle("Podcasts");
         setSupportActionBar(toolbar);
 
+        //Create the ListView and handle clicks on the podcasts.
         ArrayList<Podcast> listOfPodcasts = new ListOfPodcasts().getList();
 
         PodcastListViewAdapter podcast_adapter =
@@ -61,19 +80,74 @@ public class MainActivity extends AppCompatActivity {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                //When a podcast has been clicked, we call the EpisodesActivity
-                //and pass it the RSS Feed URL of the podcast.
+                //Pass the RSS feed of the clicked podcast to the EpisodesActivity.
                 Podcast podcast = (Podcast) adapterView.getItemAtPosition(i);
 
+                // Saving the currently selected episdoe's rss url
+                // so that the episodes activity can pick it up.
+
+                // Start the EpisodesActivity
                 Intent intent = new Intent(MainActivity.this, EpisodesActivity.class);
-                intent.putExtra("RSS_URL", podcast.rssFeedURL);
+                intent.putExtra("PODCAST_RSS_URL", podcast.rssFeedURL);
                 startActivity(intent);
             }
         });
     }
 
-    //Create the ListView Adapter.
+    /////-------------------------------------------
+    @Override
+    protected void onStart() {
+        Log.i("MH_PLAYER_APP", "MainActivity, onStart()");
+        super.onStart();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onResume() {
+        Log.i("MH_PLAYER_APP", "MainActivity, onResume()");
+        super.onResume();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onPause() {
+        Log.i("MH_PLAYER_APP", "MainActivity, onPause()");
+        super.onPause();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onStop() {
+        Log.i("MH_PLAYER_APP", "MainActivity, onPause()");
+        super.onStop();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onDestroy() {
+        Log.i("MH_PLAYER_APP", "MainActivity, onDestroy()");
+        super.onDestroy();
+        //stopService(serviceIntent);
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onRestart() {
+        Log.i("MH_PLAYER_APP", "MainActivity, onRestart()");
+        super.onRestart();
+    }
+
+    /////-------------------------------------------
+    @Override
+    protected void onNewIntent(Intent intent) {
+        Log.i("MH_PLAYER", "MainActivity, onNewIntent()");
+        super.onNewIntent(intent);
+    }
+
+    /////-------------------------------------------
+
     private class PodcastListViewAdapter extends ArrayAdapter<Podcast> {
+        //Create the ListView Adapter.
 
         PodcastListViewAdapter(Context context, ArrayList<Podcast> podcastsList){
             //Constructor
@@ -83,8 +157,8 @@ public class MainActivity extends AppCompatActivity {
         @NonNull
         @Override
         public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-
             //ArrayAdapter Method.
+
             Podcast podcast = getItem(position);
 
             if (convertView == null){
@@ -112,14 +186,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //Create the ToolBar Menu
+    /////-------------------------------------------
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        //Get the menu for this activity.
+        //Create the ToolBar Menu
         getMenuInflater().inflate(R.menu.toolbar_menu, menu);
         return true;
     }
 
+    /////-------------------------------------------
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.getItem(0).setIcon(R.drawable.ic_podcasts_screen_white_24dp);
@@ -127,14 +202,15 @@ public class MainActivity extends AppCompatActivity {
         return super.onPrepareOptionsMenu(menu);
     }
 
-    //What happens when a ToolBar item is clicked.
+    /////-------------------------------------------
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        //What happens when a ToolBar item is clicked.
+
         switch (item.getItemId()){
 
             case R.id.episodes_activity:
                 Intent ep_intent = new Intent(MainActivity.this, EpisodesActivity.class);
-                ep_intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(ep_intent);
                 break;
 
@@ -143,13 +219,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(pl_intent);
                 break;
         }
-
         return true;
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        Log.i("MainActivity", "onNewIntent()");
     }
 }

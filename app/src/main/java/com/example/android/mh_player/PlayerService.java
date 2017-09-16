@@ -1,6 +1,7 @@
 package com.example.android.mh_player;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -11,110 +12,138 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.HashMap;
+
 public class PlayerService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener{
 
-    /////////////////////////////////////////////////////
+    private MediaPlayer         player;
+    private int                 mediaPlayerState = 0;
+    private NotificationManager notificationManager;
+    private int                 current_position = 0;
+    private DatabaseReference   mDatabase;
+    private String              episode_url;
+    private String              episode_id;
 
-    private final IBinder musicBind = new MusicBinder();
-
-    //Returns a Binder object to the calling activity. The object
-    //contains a reference to this service.
-    public class MusicBinder extends Binder {
-        PlayerService getService() {
-            return PlayerService.this;
-        }
-    }
-
-    //the calling activity gets an IBinder object.
-    @Override
-    public IBinder onBind(Intent intent) {
-        return musicBind;
-    }
-
-    //////////////////////////////////////////////////////////
+    //private int MP_PREPARED          = 2;
+    private int MP_IDLE              = 0;
+    private int MP_STARTED           = 3;
+    private int MP_PAUSED            = 4;
 
 
+    /// Life Cycle Methods
+    /////////////////////////////////
 
-    private MediaPlayer player;
-    private String songTitle="Song Title";
-    private static final int NOTIFY_ID=1;
-
-    private String mp3URL;
-    private int file_duration;
-
-    private String mediaPlayerState = null;
-    private boolean isPlaying = false;
-
-//    //Constructor
-//    public PlayerService() {
-//    }
-
-    //Create and Configure the MediaPlayer.
     public void onCreate(){
+        //This method is called only once, so here we create & config the MediaPlayer.
+        Log.i("MH_PLAYER_APP", "PlayerService, onCreate()");
         super.onCreate();
 
         //create player, configure and register listeners.
         player = new MediaPlayer();
-        mediaPlayerState = "IDLE";
         player.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         player.setAudioStreamType(AudioManager.STREAM_MUSIC);
         player.setOnPreparedListener(this);
         player.setOnCompletionListener(this);
         player.setOnErrorListener(this);
+
     }
 
+    /////-------------------------------------------
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
 
+        Log.i("MH_PLAYER_APP", "PlayerService, onStartCommand()");
 
-    //LIFE CYCLE METHODS
+        if (player.isPlaying()){
+            player.stop();
+            player.reset();
+        }
 
-    //Called by the system. We move the service to the background, easier to kill.
+        episode_url = intent.getStringExtra("EPISODE_URL");
+        current_position = intent.getIntExtra("EPISODE_PLAYING_POSITION",0);
+        episode_id = intent.getStringExtra("EPISODE_ID");
+
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    /////-------------------------------------------
+    class MusicBinder extends Binder {
+        //Returns a Binder object to the calling activity. The object
+        //contains a reference to this service.
+
+        PlayerService getService() {
+            return PlayerService.this;
+        }
+    }
+    //Create an IBinder object to send to the bound activity.
+    private final IBinder musicBind = new MusicBinder();
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        //Return an IBinder object to the bound activity.
+        return musicBind;
+    }
+
+    /////-------------------------------------------
     @Override
     public void onDestroy() {
-        stopForeground(true);
-    }
+        //Stop and Release the MediaPlayer.
+        Log.i("MH_PLAYER_APP", "PlayerService, onDestroy()");
 
+        notificationManager.cancel(0);
 
-
-    //Stop and Release the MediaPlayer.
-    @Override
-    public boolean onUnbind(Intent intent){
         player.stop();
         player.release();
+
+        mDatabase = null;
+    }
+
+    ////////////////////////////////////////
+    ////////////////////////////////////////
+
+    @Override
+    public boolean onUnbind(Intent intent){
+        Log.i("MH_PLAYER_APP", "PlayerService, onUnbind()");
         return false;
     }
 
-    //MediaPlayer Methods
+    /// MediaPlayer Methods
     /////////////////////////////
 
-    //When ready to play, we create a notification.
     @Override
     public void onPrepared(MediaPlayer mp) {
-        file_duration = mp.getAudioSessionId();
-        //start playback
-        mp.start();
-        mediaPlayerState = "PLAYING";
+
+//        mediaPlayerState = MP_PREPARED;
+        player.start();
+        if (current_position != 0){
+            mp.seekTo(current_position);
+        }
+        mediaPlayerState = MP_STARTED;
 
         //Creating the notification
-        Intent notIntent = new Intent(this, MainActivity.class);
-        notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendInt = PendingIntent.getActivity(this, 0,
-                notIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        Notification.Builder builder = new Notification.Builder(this);
+        Intent intent = new Intent(this, PlayerActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, (int) System.currentTimeMillis(), intent, 0);
 
-        builder.setContentIntent(pendInt)
-                .setSmallIcon(R.drawable.play)
-                .setTicker(songTitle)
-                .setOngoing(true)
-                .setContentTitle("Playing")
-                .setContentText(songTitle);
-        Notification not = builder.build();
+        Notification n = new Notification.Builder(this)
+                .setContentTitle("test title")
+                .setContentText("test text")
+                .setSmallIcon(R.drawable.ic_play_arrow_white_24dp)
+                .setContentIntent(pendingIntent)
+                .build();
 
-        startForeground(NOTIFY_ID, not);
+        notificationManager.notify(0, n);
+
+        //file_duration = mp.getAudioSessionId();
     }
 
+    /////-------------------------------------------
     //OnError, bring the player to Idle state.
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
@@ -122,124 +151,157 @@ public class PlayerService extends Service implements
         return false;
     }
 
-    //When track has finished, call playNext().
+    /////-------------------------------------------
     @Override
-    public void onCompletion(MediaPlayer mp) { //called when track is done
-        isPlaying = false;
-
-        if(player.getCurrentPosition()>0){
-            mp.reset();
-            //playNext(url);
-        }
+    public void onCompletion(MediaPlayer mp) {
+        //called when track is done. We do nothing.
     }
 
     //AUDIO MANAGER METHODS
+    ////////////////////////////////////////
 
     @Override
     public void onAudioFocusChange(int i) {
 
     }
 
-    //METHODS CALLED FROM THE PlayerScreen
+    //METHODS CALLED FROM THE PlayerActivity
+    //////////////////////////////////////////
 
-    public void setURL(String song_url){
-        mp3URL = song_url;
-    }
+//    public void setURL(String episode_url){
+//        mp3URL = episode_url;
+//    }
 
+    /////-------------------------------------------
     public void playBtnPressed(){
 
-        if (mediaPlayerState.equals("IDLE")){
+        if (mediaPlayerState == MP_IDLE){
             try {
-                player.setDataSource(mp3URL);
+                player.setDataSource(episode_url);
+                player.prepareAsync();
             }
             catch(Exception e){
-                Log.e("MUSIC SERVICE", "Error setting data source", e);
+                Log.e("MH_PLAYER_APP", "Player Service: onStartCommand(), Error setting data source", e);
+
             }
-            player.prepareAsync();
-        } else if (mediaPlayerState.equals("PAUSED")){
-            player.start();
-            mediaPlayerState = "PLAYING";
-        } else if (mediaPlayerState.equals("PLAYING")){
-            player.pause();
-            mediaPlayerState = "PAUSED";
-        } else if (mediaPlayerState.equals("STOPPED")){
-            player.prepareAsync();
         }
+
     }
 
+    public void playBrnPressedWhenPaused(){
+        player.start();
+        mediaPlayerState = MP_STARTED;
+    }
+
+    public void pauseBtnPressed(){
+        player.pause();
+        mediaPlayerState = MP_PAUSED;
+    }
+
+    /////-------------------------------------------
     public void stopBtnPressed(){
-        if (mediaPlayerState.equals("IDLE")){
-            //Do nothing
-        } else {
+
+        if (mediaPlayerState == MP_PAUSED || mediaPlayerState == MP_STARTED){
+
+            current_position = player.getCurrentPosition();
+
+            DatabaseReference mDatabase;
+            mDatabase = FirebaseDatabase.getInstance().getReference();
+
+            HashMap<String,Integer> data = new HashMap<String, Integer>();
+            data.put(episode_id,Integer.valueOf(current_position));
+            mDatabase.push().setValue(data);
+
             player.stop();
-            mediaPlayerState = "STOPPED";
+            player.reset();
+            current_position = 0;
         }
     }
 
+    /////-------------------------------------------
     public void fwdBtnPressed(){
-        if (mediaPlayerState.equals("PLAYING")){
+        if (player.isPlaying()){
             int currentTime = player.getCurrentPosition(); //in MS.
             player.seekTo(currentTime + 30000);
         }
     }
 
+    /////-------------------------------------------
     public void replayBtnPressed(){
-        if (mediaPlayerState.equals("PLAYING")){
+        if (player.isPlaying()){
             int currentTime = player.getCurrentPosition(); //in MS.
-            player.seekTo(currentTime - 30000);
+
+            if (currentTime > 30000){
+                player.seekTo(currentTime - 30000);
+            } else {
+                player.seekTo(0);
+            }
         }
     }
 
+    /////-------------------------------------------
     public boolean isPlaying(){
-        if (!mediaPlayerState.equals("IDLE")){
+        return player.isPlaying();//Same as MP_STARTED
+    }
+
+    /////-------------------------------------------
+    public int getPosn(){
+        if (mediaPlayerState == MP_PAUSED || mediaPlayerState == MP_STARTED){
+            return player.getCurrentPosition();
+        } else {
+            return 0;
+        }
+    }
+
+    /////-------------------------------------------
+    public boolean isPaused(){
+        if (mediaPlayerState == MP_PAUSED){
             return true;
         } else {
             return false;
         }
     }
 
-    public int getPosn(){
-        return player.getCurrentPosition();
+    /////-------------------------------------------
+    public boolean isIdle(){
+        if (mediaPlayerState == MP_IDLE){
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    public int getDuration(){
-        return file_duration;
-    }
 
-    public boolean isPng(){
-        return player.isPlaying();
-    }
-
-    public void pausePlayer(){
-        player.pause();
-    }
-
+    /////-------------------------------------------
     public void seekTo(int posn){
-        if (mediaPlayerState.equals("PLAYING")){
+        if (mediaPlayerState == MP_PAUSED || mediaPlayerState == MP_STARTED){
             player.seekTo(posn);
         }
 
     }
 
-    public void playPrev(String song_url){
-        playSong(song_url);
-    }
+//    /////-------------------------------------------
+//    public void playPrev(String song_url){
+//        playSong(song_url);
+//    }
+//
+//    /////-------------------------------------------
+//    //skip to next
+//    public void playNext(String song_url){
+//        playSong(song_url);
+//    }
 
-    //skip to next
-    public void playNext(String song_url){
-        playSong(song_url);
-    }
-
-    public void playSong(String song_url){
-        //play a song
-        player.reset();
-
-        try{
-            player.setDataSource(song_url);
-        }
-        catch(Exception e){
-            Log.e("MUSIC SERVICE", "Error setting data source", e);
-        }
-        player.prepareAsync();
-    }
+//    /////-------------------------------------------
+//    public void playSong(String song_url){
+//        //play a song
+//        player.reset();
+//
+//        try{
+//            player.setDataSource(song_url);
+//        }
+//        catch(Exception e){
+//            Log.e("MH_PLAYER_APP", "Player Service: PlaySong() Error setting data source", e);
+//        }
+//        player.prepareAsync();
+//    }
 }
