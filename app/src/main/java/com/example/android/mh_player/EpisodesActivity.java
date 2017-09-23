@@ -1,5 +1,6 @@
 package com.example.android.mh_player;
 
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -18,8 +20,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -44,6 +47,7 @@ public class EpisodesActivity extends AppCompatActivity {
     private EpisodeListViewAdapter  episode_adapter;
     private ArrayList<Episode>      episodes_list;
     private String rssURL;
+    private ProgressBar progressBar_loading;
 
     /// Life Cycle Methods
     /////////////////////////////////
@@ -53,10 +57,9 @@ public class EpisodesActivity extends AppCompatActivity {
         //Gets RSS URL and calls the parser.
         //Creates the ToolBar.
 
+        Log.i("MH_PLAYER_APP", "EpisodesActivity, onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_episodes_list);
-
-        Log.i("MH_PLAYER_APP", "EpisodesActivity, onCreate()");
 
         Intent intent = getIntent();
         rssURL = intent.getStringExtra("PODCAST_RSS_URL");
@@ -76,6 +79,10 @@ public class EpisodesActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle("Episodes");
         setSupportActionBar(toolbar);
+
+        //Create a spinning 'loading' circle, until the RSS is parsed.
+        progressBar_loading = (ProgressBar) findViewById(R.id.progressBar_loading);
+        progressBar_loading.setVisibility(View.VISIBLE);
     }
 
     /////-------------------------------------------
@@ -160,7 +167,7 @@ public class EpisodesActivity extends AppCompatActivity {
             try {
                 in = new URL(rssURL).openStream();
             } catch (IOException e) {
-                Log.e("EpisodeActivity", "URL OpenStream error.");
+                Log.e("EpisodeActivity", "ParseRSS(), URL OpenStream error.");
                 e.printStackTrace();
             }
 
@@ -173,6 +180,7 @@ public class EpisodesActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(ArrayList<Episode> ep_list){
 
+            progressBar_loading.setVisibility(View.GONE);
             episodes_list = ep_list;
 
             episode_adapter = new EpisodeListViewAdapter(getApplicationContext(), episodes_list);
@@ -222,28 +230,33 @@ public class EpisodesActivity extends AppCompatActivity {
             }
 
             //Grab the TextViews from the podcasts_list_row_layout
-            TextView tvTitle       = (TextView) convertView.findViewById(R.id.episode_title);
-            TextView tvDescription = (TextView) convertView.findViewById(R.id.episode_description);
-            final Button tvBtn = (Button) convertView.findViewById(R.id.dl_button);
+            TextView tvTitle            = (TextView) convertView.findViewById(R.id.episode_title);
+            TextView tvDescription      = (TextView) convertView.findViewById(R.id.episode_description);
+            final ImageButton tvDl_Btn     = (ImageButton) convertView.findViewById(R.id.dl_button);
+            TextView tvEpisode_Age      = (TextView) convertView.findViewById(R.id.episode_age);
+            TextView tvEpisode_Duration = (TextView)convertView.findViewById(R.id.episode_duration);
 
             //Set the Row views.
             if (episode != null){
 
                 tvTitle.setText(episode.title);
                 tvDescription.setText(episode.description);
+                tvEpisode_Duration.setText(episode.durationText);
+                tvEpisode_Age.setText(episode.episodeAge);
 
                 if (episode.isDownloaded()){
-                    tvBtn.setText("Downloaded!");
+                    tvDl_Btn.setImageResource(R.drawable.ic_done_black_24dp);
                 } else {
-                    tvBtn.setText("Press To DL");
+                    tvDl_Btn.setImageResource(R.drawable.ic_file_download_black_24dp);
                 }
             }
 
 
-            tvBtn.setOnClickListener(new View.OnClickListener() {
+            tvDl_Btn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    tvBtn.setText("Downloading");
+                    Log.e("EpisodeActivity", "tvDl_Btn Listener Pressed");
+                    tvDl_Btn.setImageResource(R.drawable.ic_hourglass_empty_black_24dp);
                     new DownloadFileFromInternet().execute(new Integer(position));
                 }
             });
@@ -259,6 +272,15 @@ public class EpisodesActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Integer... position) {
+
+            //Creating the notification
+            NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            int NotifyID = 1;
+            NotificationCompat.Builder mNotifyBuilder = new NotificationCompat.Builder(EpisodesActivity.this)
+                    .setContentTitle("Downloading Episode")
+                    .setSmallIcon(R.drawable.ic_file_download_black_24dp);
+            notificationManager.notify(NotifyID, mNotifyBuilder.build());
+
             int pos = position[0];
             Episode episode = episodes_list.get(pos);
 
@@ -272,20 +294,26 @@ public class EpisodesActivity extends AppCompatActivity {
                 mp3url = new URL(url);
                 URLConnection connection =  mp3url.openConnection();
                 connection.connect();
-                //int lengthOfFile = connection.getContentLength();
+                int lengthOfFile = connection.getContentLength();
 
                 InputStream input = new BufferedInputStream(mp3url.openStream());
                 OutputStream output = new FileOutputStream(file);
 
-                byte data[] = new byte[1024];
+                byte data[] = new byte[4096];
                 int total = 0;
 
+
+
                 while ((count = input.read(data)) != -1) {
-                    total = total + data.length;
+                    total += count;
                     output.write(data, 0, count);
-                    //Log.e("FILE DL", "total: " + total + " out of " + lengthOfFile);
+                    mNotifyBuilder.setContentText(total + " Bytes out of " + String.valueOf(lengthOfFile));
+                    notificationManager.notify(NotifyID, mNotifyBuilder.build());
                 }
-                //Log.e("FILE DL", "done");
+
+                mNotifyBuilder.setContentText("Episode Downloaded.");
+                notificationManager.notify(NotifyID, mNotifyBuilder.build());
+
                 // Flush output
                 output.flush();
                 output.close();
@@ -307,7 +335,6 @@ public class EpisodesActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            //Toast.makeText(getApplicationContext(), "async done", Toast.LENGTH_SHORT).show();
             episode_adapter.notifyDataSetChanged();
         }
     }

@@ -95,9 +95,10 @@ public class PlayerService extends Service implements
         //Stop and Release the MediaPlayer.
         Log.i("MH_PLAYER_APP", "PlayerService, onDestroy()");
 
-        notificationManager.cancel(0);
+        if (notificationManager != null){
+            notificationManager.cancel(0);
+        }
 
-        player.stop();
         player.release();
 
         mDatabase = null;

@@ -89,7 +89,7 @@ public class PlayerActivity extends AppCompatActivity {
 
             episode_title = episode.title;
             episode_description = episode.description;
-            episode_duration = episode.duration;
+            episode_duration = episode.durationMS;
             episode_playing_position = 0;
             episode_id = episode.episode_id;
 

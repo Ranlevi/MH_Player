@@ -1,34 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_width="match_parent">
+    android:layoutDirection="rtl"
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/episode_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Name"
+        android:text="בדיקה של טקסט ארוך מאד בכותרת כך שבטוח צריך שתי שורות כדי לשים אותו."
         android:textColor="@android:color/black"
+        android:textDirection="rtl"
         android:textSize="16sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/episode_description"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/episode_title"
-        android:text="Description"
-        android:textColor="@color/colorPrimary" />
-
-    <Button
-        android:id="@+id/dl_button"
-        android:focusable="false"
-        android:focusableInTouchMode="false"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Download"
-        android:layout_below="@id/episode_description"
-        android:layout_marginEnd="11dp" />
+        android:ellipsize="end"
+        android:lines="3"
+        android:text="טקסט ארוך מאדטקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד טקסט ארוך מאד."
+        android:textColor="@color/colorPrimary"
+        android:textDirection="rtl" />
 
-</RelativeLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/dl_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:src="@drawable/ic_file_download_black_24dp" />
+
+        <TextView
+            android:id="@+id/episode_age"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:text="15d"
+            android:textAlignment="center"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/episode_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:text="30:00"
+            android:textAlignment="center"
+            android:textColor="@android:color/black" />
+    </LinearLayout>
+
+</LinearLayout>

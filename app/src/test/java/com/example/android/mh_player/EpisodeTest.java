@@ -19,7 +19,7 @@ public class EpisodeTest {
         assertThat(episode.title,is("Mock Title"));
         assertThat(episode.description,is("Mock Description"));
         assertThat(episode.mp3URL,is("http://www.mock_url.mp3"));
-        assertThat(episode.duration,is(3723000));
+        assertThat(episode.durationMS,is(3723000));
         assertThat(episode.isDownloaded(),is(false));
         assertThat(episode.file_name.length(),is(32));
 

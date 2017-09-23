@@ -3,6 +3,11 @@ package com.example.android.mh_player;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.StringTokenizer;
 import java.util.UUID;
 
 public class Episode implements Serializable{
@@ -15,10 +20,12 @@ public class Episode implements Serializable{
     private boolean isDownloaded;
     String          file_name;
     String          mp3URL;
-    int             duration;
+    int             durationMS;
+    String          durationText;
     String          episode_id = "default_dummy_id";
+    String          pubDate;
+    String          episodeAge;
 
-    private String  pubDate;
     private String  link;
 
 
@@ -34,6 +41,51 @@ public class Episode implements Serializable{
         this.mp3URL      = mp3URL;
         this.pubDate     = pubDate;
         this.link        = link;
+        this.durationText = duration;
+
+        //Fri, 22 Sep 2017 15:53:47 +0000
+        SimpleDateFormat mySimpleDateFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
+        long pubDateInMS = 0;
+
+        try {
+            Date parsedDate = mySimpleDateFormat.parse(this.pubDate);
+            pubDateInMS = parsedDate.getTime();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        if (pubDateInMS != 0){
+            Date currentDate = new Date();
+            long currentDateInMS = currentDate.getTime();
+
+            long different = currentDateInMS - pubDateInMS;
+            long daysInMilli = 1000 * 60 * 60 * 24;
+            long yearsInMilli = daysInMilli*365;
+
+            long elapsedYears = different / yearsInMilli;
+
+            if (elapsedYears == 0){
+                //show only days
+                long elapsedDays = different / daysInMilli;
+
+                if (elapsedDays == 0){
+                    this.episodeAge = "Today";
+                } else {
+                    this.episodeAge = String.valueOf(elapsedDays) + "d";
+                }
+            } else {
+                different = different % yearsInMilli;
+                long elapsedDays = different / daysInMilli;
+
+                if (elapsedDays == 0){
+                    this.episodeAge = String.valueOf(elapsedYears) + "y";
+                } else {
+                    this.episodeAge = String.valueOf(elapsedYears) + "y " + String.valueOf(elapsedDays) + "d";
+                }
+            }
+        } else {
+            this.episodeAge = "Unknown";
+        }
 
         //Convert the String duration of the form "01:02:03" to int number of millisecs.
         String[] temp_arr = duration.split(":");
@@ -42,14 +94,14 @@ public class Episode implements Serializable{
 
             int minutes = Integer.parseInt(temp_arr[0]);
             int seconds = Integer.parseInt(temp_arr[1]);
-            this.duration = minutes*60*1000 + seconds*1000;
+            this.durationMS = minutes*60*1000 + seconds*1000;
 
         } else if (temp_arr.length == 3){ //e.g. "01:02:03"
 
             int hours = Integer.parseInt(temp_arr[0]);
             int minutes = Integer.parseInt(temp_arr[1]);
             int seconds = Integer.parseInt(temp_arr[2]);
-           this.duration = hours*60*60*1000 + minutes*60*1000 + seconds*1000;
+           this.durationMS = hours*60*60*1000 + minutes*60*1000 + seconds*1000;
 
         }
 

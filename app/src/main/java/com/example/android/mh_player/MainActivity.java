@@ -27,6 +27,7 @@ import java.util.ArrayList;
  *  TODO: finanliz UI
  *
  *  BUGS:
+ *  - if episode was downloaded before, we don't know it.
  *  -on rotate, playing starts from 0.
  */
 
@@ -34,34 +35,18 @@ public class MainActivity extends AppCompatActivity {
     //This is the main screen of the application.
     //It has a ToolBar on top, and shows a list of podcasts.
 
-    //We create a ListOfPodcasts object, which is a list of Podcast objects.
-    //Initialization of the Podcast objects is hard-coded.
-    //We then create the ListView and ListView adapter that shows the podcast objects,
-    //and handles clicks on them.
-
-    //Note on Activity Back Stack:
-    //When the toolbar is pressed, we start the activity with REORDER, to bring
-    //to the front the existing instance of an activity, if there is one.
-    //When the user presses BACK, the instance is destroyed so we can't reorder later.
-
-    //Intent serviceIntent;
-
     /// Life Cycle Methods
     /////////////////////////////////
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //Create the ToolBar.
-        //Create the ListView and its onItemClick()
+        //Create the ListView of podcasts, and handles clicks on them.
 
         Log.i("MH_PLAYER_APP", "MainActivity, onCreate()");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        //Start the MediaPlayer service.
-        //serviceIntent = new Intent(this, PlayerService.class);
-        //startService(serviceIntent);
 
         //Create the ToolBar.
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -69,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         //Create the ListView and handle clicks on the podcasts.
+        //The data on each podcast is stored in the ListOfPodcasts class.
         ArrayList<Podcast> listOfPodcasts = new ListOfPodcasts().getList();
 
         PodcastListViewAdapter podcast_adapter =
@@ -83,10 +69,6 @@ public class MainActivity extends AppCompatActivity {
                 //Pass the RSS feed of the clicked podcast to the EpisodesActivity.
                 Podcast podcast = (Podcast) adapterView.getItemAtPosition(i);
 
-                // Saving the currently selected episdoe's rss url
-                // so that the episodes activity can pick it up.
-
-                // Start the EpisodesActivity
                 Intent intent = new Intent(MainActivity.this, EpisodesActivity.class);
                 intent.putExtra("PODCAST_RSS_URL", podcast.rssFeedURL);
                 startActivity(intent);
@@ -127,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         Log.i("MH_PLAYER_APP", "MainActivity, onDestroy()");
         super.onDestroy();
-        //stopService(serviceIntent);
     }
 
     /////-------------------------------------------
@@ -150,7 +131,6 @@ public class MainActivity extends AppCompatActivity {
         //Create the ListView Adapter.
 
         PodcastListViewAdapter(Context context, ArrayList<Podcast> podcastsList){
-            //Constructor
             super(context,0,podcastsList);
         }
 
@@ -177,8 +157,9 @@ public class MainActivity extends AppCompatActivity {
                 tvDescription.setText(podcast.description);
 
                 //path_to_logo is a string. We concert to ID first, then set the image.
-                Drawable logo = getDrawable(getResources()
-                        .getIdentifier(podcast.path_to_logo, "drawable", getPackageName()));
+                Drawable logo = getDrawable(
+                        getResources()
+                          .getIdentifier(podcast.path_to_logo, "drawable", getPackageName()));
                 ibLogo.setImageDrawable(logo);
             }
 
@@ -197,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
     /////-------------------------------------------
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+        //Since we're in the MainActivity, we disable the menu button for it.
         menu.getItem(0).setIcon(R.drawable.ic_podcasts_screen_white_24dp);
         menu.getItem(0).setEnabled(false);
         return super.onPrepareOptionsMenu(menu);

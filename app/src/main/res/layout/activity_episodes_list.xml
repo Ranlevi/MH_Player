@@ -18,4 +18,14 @@
         android:id="@+id/episodes_list_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <!-- Circular 'Loading' element, shown until the episodes are loaded -->
+    <ProgressBar
+        android:id="@+id/progressBar_loading"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone"
+        android:indeterminate="true"/>
 </LinearLayout>
