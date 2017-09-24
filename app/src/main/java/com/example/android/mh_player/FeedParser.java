@@ -1,13 +1,17 @@
 package com.example.android.mh_player;
 
+import android.os.Environment;
 import android.util.Log;
 import android.util.Xml;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.UUID;
 
 class FeedParser {
     //Gets an input stream of a podcast RSS feed.

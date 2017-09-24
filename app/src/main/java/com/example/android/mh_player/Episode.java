@@ -1,5 +1,9 @@
 package com.example.android.mh_player;
 
+import android.content.Context;
+import android.os.Environment;
+
+import java.io.File;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -25,6 +29,7 @@ public class Episode implements Serializable{
     String          episode_id = "default_dummy_id";
     String          pubDate;
     String          episodeAge;
+    String          file_path;
 
     private String  link;
 
@@ -105,10 +110,15 @@ public class Episode implements Serializable{
 
         }
 
-        this.isDownloaded  = false;
+        String[] temp = this.mp3URL.split("/");
+        file_name = temp[temp.length-1];
+
 
         //Local file name, random string of 32 chars.
-        this.file_name = UUID.randomUUID().toString().replaceAll("-","");
+        //this.file_name = UUID.randomUUID().toString().replaceAll("-","");
+
+
+        this.isDownloaded  = false;
 
         //Create a unique & consistent episode id
         try {
@@ -125,5 +135,9 @@ public class Episode implements Serializable{
 
     boolean isDownloaded(){
         return this.isDownloaded;
+    }
+
+    void setFilePath(String path){
+        this.file_path = path;
     }
 }

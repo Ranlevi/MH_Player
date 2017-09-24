@@ -24,6 +24,8 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -46,8 +48,8 @@ public class EpisodesActivity extends AppCompatActivity {
 
     private EpisodeListViewAdapter  episode_adapter;
     private ArrayList<Episode>      episodes_list;
-    private String rssURL;
-    private ProgressBar progressBar_loading;
+    private String                  rssURL;
+    private ProgressBar             progressBar_loading;
 
     /// Life Cycle Methods
     /////////////////////////////////
@@ -61,18 +63,20 @@ public class EpisodesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_episodes_list);
 
+        //Get the RSS URL of the podcast we wish to display.
+        //If the intent is null, then the activity was started from the toolbar and
+        //there is no RSS URL specified. In this case, we load the URL of the last podcast viewed.
+
         Intent intent = getIntent();
         rssURL = intent.getStringExtra("PODCAST_RSS_URL");
 
         if (rssURL == null){
-            //The activity was started from the toolbar, and there is
-            //no rssURL already loaded:
-            //Get the last podcast used before the app was closed.
             SharedPreferences sharedPreferences;
             sharedPreferences = getSharedPreferences("MH_PLAYER_PREF", 0);
             rssURL = sharedPreferences.getString("LAST_USED_RSS_FEED", "http://www.ranlevi.com/feed/podcast/");
         }
 
+        //Send the RSS URL to be parsed in the background.
         new ParseRSS(rssURL).execute();
 
         //Create the ToolBar.
@@ -149,7 +153,7 @@ public class EpisodesActivity extends AppCompatActivity {
 
     private class ParseRSS extends AsyncTask<Void, Void, ArrayList<Episode>> {
         //Parse the RSS Feed of the selected podcast in the background.
-        //Creates the list of Episodes for the ListView.
+        //From the parsed RSS, create an array of Episode objects.
 
         private String rssURL;
 
@@ -158,9 +162,9 @@ public class EpisodesActivity extends AppCompatActivity {
             this.rssURL = rssURL;
         }
 
-        //The network call to read the RSS is done in the background.
         @Override
         protected ArrayList<Episode> doInBackground(Void... voids) {
+            //Get the RSS information and send it to parsing.
 
             InputStream in = null;
 
@@ -175,26 +179,41 @@ public class EpisodesActivity extends AppCompatActivity {
             return feedParser.parse(in);
         }
 
-        //Takes a list of RSS Items, creates a list of Episodes for the ListView.
-        //Handles clicks on the episodes.
         @Override
         protected void onPostExecute(ArrayList<Episode> ep_list){
+            //This method is called once parsing of RSS info is done.
 
+            //Remove the spinning 'Loading' progress bar.
             progressBar_loading.setVisibility(View.GONE);
+
+            //Set the class variable, since we'll need it else where in the code.
             episodes_list = ep_list;
 
-            episode_adapter = new EpisodeListViewAdapter(getApplicationContext(), episodes_list);
+            //For each episode object, check if the file was already loaded before.
+            for (int i=0;i<episodes_list.size();i++){
+                Episode ep = episodes_list.get(i);
+                File file = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), ep.file_name);
 
+                if (file.exists()){
+                    //file was already downloaded
+                    ep.setDownloadedTrue();
+                    ep.setFilePath(file.getAbsolutePath());
+                }
+            }
+
+            //Create the ListView of the episode on the screen.
+            episode_adapter = new EpisodeListViewAdapter(getApplicationContext(), episodes_list);
             ListView episodes_listview = (ListView) findViewById(R.id.episodes_list_view);
             episodes_listview.setAdapter(episode_adapter);
 
+            //Handle clicks on the episodes ListView. When an episode is clicked - we send
+            //it the the Player Activity.
             episodes_listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> episode_adapter, View view, int i, long l) {
 
                     Episode episode = (Episode) episode_adapter.getItemAtPosition(i);
 
-                    // Start the PlayerActivity
                     Bundle bundle = new Bundle();
                     bundle.putSerializable("SELECTED_EPISODE", episode);
 
@@ -209,7 +228,7 @@ public class EpisodesActivity extends AppCompatActivity {
     /////-------------------------------------------
 
     private class EpisodeListViewAdapter extends ArrayAdapter<Episode> {
-        //Create the ListView Adapter.
+        //Create the ListView Adapter which is in charge of displaying the list items.
 
         EpisodeListViewAdapter(Context context, ArrayList<Episode> episodeList){
             //Constructor
@@ -220,8 +239,7 @@ public class EpisodesActivity extends AppCompatActivity {
         @Override
         public View getView(final int position, @Nullable View convertView, @NonNull ViewGroup parent) {
 
-
-            Episode episode = getItem(position);
+            final Episode episode = getItem(position);
 
             if (convertView == null){
                 //If an old view is available (such as a one scrolled to the bottom) - we use it.
@@ -229,14 +247,13 @@ public class EpisodesActivity extends AppCompatActivity {
                         LayoutInflater.from(getContext()).inflate(R.layout.episodes_list_row_layout, parent, false);
             }
 
-            //Grab the TextViews from the podcasts_list_row_layout
             TextView tvTitle            = (TextView) convertView.findViewById(R.id.episode_title);
             TextView tvDescription      = (TextView) convertView.findViewById(R.id.episode_description);
-            final ImageButton tvDl_Btn     = (ImageButton) convertView.findViewById(R.id.dl_button);
+            final ImageButton tvDl_Btn  = (ImageButton) convertView.findViewById(R.id.dl_button);
             TextView tvEpisode_Age      = (TextView) convertView.findViewById(R.id.episode_age);
             TextView tvEpisode_Duration = (TextView)convertView.findViewById(R.id.episode_duration);
 
-            //Set the Row views.
+            //Populate the data on the user interface.
             if (episode != null){
 
                 tvTitle.setText(episode.title);
@@ -245,19 +262,37 @@ public class EpisodesActivity extends AppCompatActivity {
                 tvEpisode_Age.setText(episode.episodeAge);
 
                 if (episode.isDownloaded()){
-                    tvDl_Btn.setImageResource(R.drawable.ic_done_black_24dp);
+                    tvDl_Btn.setImageResource(R.drawable.ic_delete_black_24dp);
                 } else {
                     tvDl_Btn.setImageResource(R.drawable.ic_file_download_black_24dp);
                 }
             }
 
-
             tvDl_Btn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Log.e("EpisodeActivity", "tvDl_Btn Listener Pressed");
-                    tvDl_Btn.setImageResource(R.drawable.ic_hourglass_empty_black_24dp);
-                    new DownloadFileFromInternet().execute(new Integer(position));
+                    //If the episode is already downloaded, then clicking the button
+                    //means the user wants to delete it.
+                    //If not, then we download it.
+
+                    if (episode.isDownloaded()){
+                        //Delete the file
+
+                        File file = new File(episode.file_path);
+                        boolean result = file.delete();
+
+                        //If there was a problem deleting the file, inform the user. Else, change the icon.
+                        if (!result){
+                            Toast.makeText(EpisodesActivity.this, "File cannot be deleted.", Toast.LENGTH_LONG).show();
+                        } else {
+                            tvDl_Btn.setImageResource(R.drawable.ic_file_download_black_24dp);
+                        }
+
+                    } else {
+                        //Download it in a background process.
+                        tvDl_Btn.setImageResource(R.drawable.ic_hourglass_empty_black_24dp);
+                        new DownloadFileFromInternet().execute(new Integer(position));
+                    }
                 }
             });
 
@@ -273,36 +308,39 @@ public class EpisodesActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(Integer... position) {
 
-            //Creating the notification
+            //We create a notification to inform the user on the download progress.
             NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             int NotifyID = 1;
+
             NotificationCompat.Builder mNotifyBuilder = new NotificationCompat.Builder(EpisodesActivity.this)
                     .setContentTitle("Downloading Episode")
                     .setSmallIcon(R.drawable.ic_file_download_black_24dp);
+
             notificationManager.notify(NotifyID, mNotifyBuilder.build());
 
+            //Get the episode the user selected.
             int pos = position[0];
             Episode episode = episodes_list.get(pos);
 
+            //Create a file object pointing to that file's name.
             File file = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), episode.file_name);
 
-            int count;
-            String url = episode.mp3URL;
-
+            //Download the episode while updating the notification on the progress.
             URL mp3url;
             try {
-                mp3url = new URL(url);
+                mp3url = new URL (episode.mp3URL);
+
                 URLConnection connection =  mp3url.openConnection();
                 connection.connect();
+
                 int lengthOfFile = connection.getContentLength();
 
                 InputStream input = new BufferedInputStream(mp3url.openStream());
                 OutputStream output = new FileOutputStream(file);
 
                 byte data[] = new byte[4096];
+                int count;
                 int total = 0;
-
-
 
                 while ((count = input.read(data)) != -1) {
                     total += count;
@@ -319,21 +357,23 @@ public class EpisodesActivity extends AppCompatActivity {
                 output.close();
                 input.close();
 
-
             } catch (MalformedURLException e) {
-                Log.e("EpisodesActivity", "Malformed url");
+                Log.e("EpisodesActivity", "DownloadFileFromInternet(), Malformed url");
                 e.printStackTrace();
             } catch (IOException e) {
-                Log.e("EpisodesActivity", "IOException");
+                Log.e("EpisodesActivity", "DownloadFileFromInternet(), IOException");
                 e.printStackTrace();
             }
 
+            //Update the episode object.
             episode.setDownloadedTrue();
+            episode.setFilePath(file.getAbsolutePath());
             return null;
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
+            //Cause the ListView to update, so the icon is modified.
             super.onPostExecute(aVoid);
             episode_adapter.notifyDataSetChanged();
         }
